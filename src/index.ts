@@ -16,25 +16,39 @@ export class DluxMqttDevice {
     if (client) this.initialize(client);
   }
 
-  public get online(): boolean { return this.m_status === "online"; }
-  public get statusTopic(): string { return this.topic + "/status"; }
-  public get outputsTopic(): string { return this.topic + "/outputs"; }
-  public get inputsTopic(): string { return this.topic + "/inputs"; }
-
-  protected get commonSubscriptions(): IDluxSubscription[] {
-    return [{
-      topic: this.statusTopic,
-      callback: msg => (this.m_status = msg.toString()),
-    },{
-      topic: this.inputsTopic,
-      callback: msg => (this.m_inputs = msg.toString()),
-    },{
-      topic: this.outputsTopic,
-      callback: msg => (this.m_outputs = msg.toString()),
-    },];
+  public get online(): boolean {
+    return this.m_status === "online";
+  }
+  public get statusTopic(): string {
+    return this.topic + "/status";
+  }
+  public get outputsTopic(): string {
+    return this.topic + "/outputs";
+  }
+  public get inputsTopic(): string {
+    return this.topic + "/inputs";
   }
 
-  protected get deviceSubscriptions(): IDluxSubscription[] { return []; }
+  protected get commonSubscriptions(): IDluxSubscription[] {
+    return [
+      {
+        topic: this.statusTopic,
+        callback: msg => (this.m_status = msg.toString()),
+      },
+      {
+        topic: this.inputsTopic,
+        callback: msg => (this.m_inputs = msg.toString()),
+      },
+      {
+        topic: this.outputsTopic,
+        callback: msg => (this.m_outputs = msg.toString()),
+      },
+    ];
+  }
+
+  protected get deviceSubscriptions(): IDluxSubscription[] {
+    return [];
+  }
 
   public get client(): MqttClient {
     if (!this.m_client) {
@@ -52,9 +66,11 @@ export class DluxMqttDevice {
   }
 
   public addListeners(): void {
-    this.subscriptions.forEach(s => this.client.addListener("message", (t: string, p: Buffer) => {
-      if (t === s.topic) s.callback(p);
-    }));
+    this.subscriptions.forEach(s =>
+      this.client.addListener("message", (t: string, p: Buffer) => {
+        if (t === s.topic) s.callback(p);
+      })
+    );
   }
 
   public subscribe(): void {
@@ -103,16 +119,26 @@ export class DluxMqttLedDevice extends DluxMqttDevice {
     super(name, topic, client);
   }
 
-  public get stateTopic(): string { return this.topic + "/states"; }
-  public get actionTopic(): string { return this.topic + "/a"; }
-  public get sceneTopic(): string { return this.topic + "/s"; }
+  public get stateTopic(): string {
+    return this.topic + "/states";
+  }
+  public get actionTopic(): string {
+    return this.topic + "/a";
+  }
+  public get sceneTopic(): string {
+    return this.topic + "/s";
+  }
 
-  public get state(): DluxLedStatus { return this.m_state; }
+  public get state(): DluxLedStatus {
+    return this.m_state;
+  }
 
   protected override get deviceSubscriptions(): IDluxSubscription[] {
-    return [{
-      topic: this.stateTopic,
-      callback: msg => (this.m_state = status(msg.toString())),
-    }];
+    return [
+      {
+        topic: this.stateTopic,
+        callback: msg => (this.m_state = status(msg.toString())),
+      },
+    ];
   }
 }
