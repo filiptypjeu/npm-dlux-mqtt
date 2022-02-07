@@ -141,7 +141,7 @@ export class DluxMqttLedDevice extends DluxMqttDevice {
     super(name, topic, client);
   }
 
-  public get stateTopic(): string {
+  public get statesTopic(): string {
     return this.topic + "/states";
   }
   public get actionTopic(): string {
@@ -158,7 +158,7 @@ export class DluxMqttLedDevice extends DluxMqttDevice {
   protected override get deviceSubscriptions(): IDluxSubscription[] {
     return [
       {
-        topic: this.stateTopic,
+        topic: this.statesTopic,
         callback: msg => (this.m_state = status(msg.toString())),
       },
     ];
