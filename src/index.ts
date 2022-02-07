@@ -1,5 +1,5 @@
 import { ColorType, DluxLedStatus, SceneType, status } from "dlux";
-import { MqttClient } from "mqtt";
+import { IPublishPacket, MqttClient } from "mqtt";
 
 export interface IDluxSubscription {
   topic: string;
@@ -8,6 +8,7 @@ export interface IDluxSubscription {
 
 export class DluxMqttDevice {
   protected m_status: string = "offline";
+  protected m_version: string = "";
   protected m_client: MqttClient | undefined;
   protected m_inputs: string = ":::::::";
   protected m_outputs: string = "--------";
@@ -19,8 +20,17 @@ export class DluxMqttDevice {
   public get online(): boolean {
     return this.m_status === "online";
   }
+  public get version(): string {
+    return this.m_version;
+  }
   public get statusTopic(): string {
     return this.topic + "/status";
+  }
+  public get versionTopic(): string {
+    return this.topic + "/version";
+  }
+  public get logTopic(): string {
+    return this.topic + "/log";
   }
   public get outputsTopic(): string {
     return this.topic + "/outputs";
@@ -33,15 +43,27 @@ export class DluxMqttDevice {
     return [
       {
         topic: this.statusTopic,
-        callback: msg => (this.m_status = msg.toString()),
+        callback: payload => (this.m_status = payload.toString()),
+      },
+      {
+        topic: this.versionTopic,
+        callback: payload => (this.m_version = payload.toString()),
+      },
+      {
+        topic: this.logTopic,
+        callback: payload => {
+          const msg = payload.toString();
+          if (!msg.startsWith("Version = ")) return;
+          this.m_version = msg.split("Version = ")[1];
+        },
       },
       {
         topic: this.inputsTopic,
-        callback: msg => (this.m_inputs = msg.toString()),
+        callback: payload => (this.m_inputs = payload.toString()),
       },
       {
         topic: this.outputsTopic,
-        callback: msg => (this.m_outputs = msg.toString()),
+        callback: payload => (this.m_outputs = payload.toString()),
       },
     ];
   }
@@ -67,7 +89,7 @@ export class DluxMqttDevice {
 
   public addListeners(): void {
     this.subscriptions.forEach(s =>
-      this.client.addListener("message", (t: string, p: Buffer) => {
+      this.client.addListener("message", (t: string, p: Buffer, _packet: IPublishPacket) => {
         if (t === s.topic) s.callback(p);
       })
     );
@@ -78,8 +100,8 @@ export class DluxMqttDevice {
   }
 
   public requestStates(): void {
-    this.client.publish(this.topic, "s");
-    this.client.publish(this.topic, "g");
+    this.client.publish(this.topic, "s"); // States
+    this.client.publish(this.topic, "g"); // GPIO inputs and outputs
   }
 
   public initialize(client: MqttClient): void {
